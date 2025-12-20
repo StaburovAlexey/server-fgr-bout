@@ -1,7 +1,7 @@
 import Fastify, { FastifyError } from 'fastify';
 import cors from '@fastify/cors';
 import { ZodError } from 'zod';
-import { env } from './config/env.js';
+import { env, allowedOrigins } from './config/env.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
 import { scoresRoutes } from './routes/scores.js';
@@ -14,8 +14,10 @@ export const buildApp = () => {
     },
   });
 
+  const corsOrigin = allowedOrigins.length > 0 ? allowedOrigins : true;
+
   app.register(cors, {
-    origin: env.APP_ORIGIN ?? true,
+    origin: corsOrigin,
   });
 
   app.register(healthRoutes, { prefix: '/health' });

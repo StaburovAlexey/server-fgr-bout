@@ -18,6 +18,7 @@ export const buildApp = () => {
 
   app.register(cors, {
     origin: corsOrigin,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
   app.register(healthRoutes, { prefix: '/health' });

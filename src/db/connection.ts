@@ -9,8 +9,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let dbInstance: Database.Database | null = null;
 
 const loadSchema = () => {
-  const schemaPath = path.resolve(__dirname, 'schema.sql');
-  return fs.readFileSync(schemaPath, 'utf-8');
+  const candidates = [
+    // compiled build (dist/db/schema.sql)
+    path.resolve(__dirname, 'schema.sql'),
+    // fallback to source tree (src/db/schema.sql)
+    path.resolve(process.cwd(), 'src/db/schema.sql'),
+  ];
+
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return fs.readFileSync(candidate, 'utf-8');
+    }
+  }
+
+  throw new Error(`schema.sql not found. Checked: ${candidates.join(', ')}`);
 };
 
 const ensureDir = (targetPath: string) => {

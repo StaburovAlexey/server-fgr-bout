@@ -11,13 +11,17 @@ const authDataSchema = z.object({
   user: z.string().optional(), // строка с JSON
   auth_date: z.coerce.number().int(),
   hash: z.string(),
+  signature: z.string().optional(), // не используем в вычислении hash
 });
 
 type ParsedTelegramData = z.infer<typeof authDataSchema>;
 export type TelegramAuthData = ParsedTelegramData & { id: number };
 
 const buildDataCheckString = (params: URLSearchParams) => {
-  const entries = Array.from(params.entries()).filter(([key]) => key !== 'hash');
+  // Игнорируем hash и signature согласно спецификации.
+  const entries = Array.from(params.entries()).filter(
+    ([key]) => key !== 'hash' && key !== 'signature'
+  );
   entries.sort(([a], [b]) => a.localeCompare(b));
   return entries.map(([key, value]) => `${key}=${value}`).join('\n');
 };

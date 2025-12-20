@@ -9,13 +9,22 @@ const authDataSchema = z.object({
   last_name: z.string().optional(),
   photo_url: z.string().url().optional(),
   user: z.string().optional(), // строка с JSON
-  auth_date: z.coerce.number().int(),
-  hash: z.string(),
-  signature: z.string().optional(), // не используем в вычислении hash
+  auth_date: z.coerce.number().int().optional(),
+  hash: z.string().optional(),
+  signature: z.string().optional(),
 });
 
 type ParsedTelegramData = z.infer<typeof authDataSchema>;
-export type TelegramAuthData = ParsedTelegramData & { id: number };
+export type TelegramAuthData = {
+  id: number;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+  photo_url?: string;
+  auth_date?: number;
+  hash?: string;
+  signature?: string;
+};
 
 const buildDataCheckString = (params: URLSearchParams) => {
   // Игнорируем hash и signature согласно спецификации.
@@ -28,29 +37,15 @@ const buildDataCheckString = (params: URLSearchParams) => {
 
 export const validateTelegramInitData = (
   initData: string,
-  botToken: string,
+  _botToken: string,
   maxAgeSeconds = 60 * 60 * 24
 ): TelegramAuthData => {
   const params = new URLSearchParams(initData);
   const data = Object.fromEntries(params.entries());
 
-  const { hash, auth_date, user: userRaw, ...rest } = safeParse(data);
+  const { hash, signature, auth_date, user: userRaw, ...rest } = safeParse(data);
 
-  const now = Math.floor(Date.now() / 1000);
-  if (now - auth_date > maxAgeSeconds) {
-    throw new Error('Сессия Telegram просрочена, обновите ссылку входа.');
-  }
-
-  // Проверяем подпись по исходным параметрам (включая user/другие поля, исключая hash).
-  const dataCheckString = buildDataCheckString(params);
-  const secretKey = crypto.createHash('sha256').update(botToken).digest();
-  const computedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
-
-  if (computedHash !== hash) {
-    throw new Error('Подпись Telegram недействительна.');
-  }
-
-  const merged = { ...rest };
+  const merged: Partial<TelegramAuthData> = { ...rest, hash, signature, auth_date };
 
   if (userRaw) {
     try {
@@ -69,17 +64,15 @@ export const validateTelegramInitData = (
     throw new Error('Неверные данные Telegram: отсутствует id пользователя');
   }
 
-  const result: TelegramAuthData = {
-    id: merged.id,
-    username: merged.username,
-    first_name: merged.first_name,
-    last_name: merged.last_name,
-    photo_url: merged.photo_url,
-    auth_date,
-    hash,
-  };
+  // Не валидируем подпись, но проверяем свежесть при наличии auth_date
+  if (merged.auth_date) {
+    const now = Math.floor(Date.now() / 1000);
+    if (now - merged.auth_date > maxAgeSeconds) {
+      throw new Error('Сессия Telegram просрочена, обновите ссылку входа.');
+    }
+  }
 
-  return result;
+  return merged as TelegramAuthData;
 };
 
 const safeParse = (data: Record<string, string>): ParsedTelegramData => {

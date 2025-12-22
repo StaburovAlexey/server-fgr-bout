@@ -53,8 +53,8 @@ install_node_git() {
   fi
   sudo apt install -y nodejs git nginx certbot python3-certbot-nginx openssl
 
-  echo "Node version: $(node -v 2>/dev/null || echo 'not found')"
-  echo "npm version:  $(npm -v 2>/dev/null || echo 'not found')"
+  echo "Версия Node: $(node -v 2>/dev/null || echo 'not found')"
+  echo "Версия npm:  $(npm -v 2>/dev/null || echo 'not found')"
 }
 
 install_nginx_certbot_only() {
@@ -330,23 +330,23 @@ setup_certbot_for_domain() {
   local DOMAIN
   DOMAIN="$1"
 
-  echo ">>> Configuring HTTPS (Let's Encrypt, certbot + nginx)..."
+  echo ">>> Настройка HTTPS (Let's Encrypt, certbot + nginx)..."
   if [ -z "${DOMAIN:-}" ]; then
-    read -rp "${COLOR_ASK}Enter domain (example.com): ${COLOR_RESET}" DOMAIN
+    read -rp "${COLOR_ASK}Введите домен (example.com): ${COLOR_RESET}" DOMAIN
   fi
 
   if [ -z "${DOMAIN:-}" ]; then
-    echo "Domain is empty, skip certbot."
+    echo "Домен не указан, пропускаю certbot."
     return 1
   fi
 
   CERTBOT_DOMAIN="$DOMAIN"
 
   # DNS must already point to this server
-  echo ">>> Running certbot for domain: $CERTBOT_DOMAIN"
+  echo ">>> Запуск certbot для домена: $CERTBOT_DOMAIN"
   sudo certbot --nginx -d "$CERTBOT_DOMAIN"
 
-  echo "Certbot installs a systemd timer for automatic renewals."
+  echo "Certbot устанавливает systemd-таймер для автоматического продления."
   echo "Проверка: systemctl list-timers | grep certbot"
 }
 
